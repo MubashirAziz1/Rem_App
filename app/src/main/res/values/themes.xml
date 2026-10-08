@@ -1,0 +1,13 @@
+<resources>
+    <!-- Base application theme: relies on Material3 Compose for actual UI theming. -->
+    <style name="Theme.QuickAlarm" parent="android:Theme.Material.NoActionBar" />
+
+    <!-- Transparent theme used by the composer so it floats over the keyguard. -->
+    <style name="Theme.QuickAlarm.Transparent" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+</resources>

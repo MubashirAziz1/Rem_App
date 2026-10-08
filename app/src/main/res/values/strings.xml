@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Quick Alarm</string>
+    <string name="channel_name">Quick Alarm</string>
+    <string name="channel_desc">Persistent shortcut to quickly create a titled alarm.</string>
+    <string name="notif_title">Quick Alarm</string>
+    <string name="notif_text">Tap to set a new alarm</string>
+    <string name="action_hide">Hide</string>
+</resources>
