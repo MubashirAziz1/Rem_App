@@ -116,12 +116,13 @@ fun ComposerScreen(
                         titleError = titleError,
                         focusRequester = focusRequester,
                         onSet = {
-                            if (title.isBlank()) {
+                            val trimmed = com.quickalarm.alarm.SetAlarmHandoff.validateTitle(title)
+                            if (trimmed == null) {
                                 titleError = true
                             } else {
                                 keyboard?.hide()
                                 uiState = ComposerUiState.Done(
-                                    onConfirm(hour, minute, title.trim()),
+                                    onConfirm(hour, minute, trimmed),
                                 )
                             }
                         },
@@ -263,6 +264,12 @@ private fun DoneContent(
             onRetry = null,
         )
 
+        is HandoffResult.Invalid -> ErrorBlock(
+            message = result.message,
+            onDone = onDone,
+            onRetry = onRetry,
+        )
+
         is HandoffResult.Failed -> ErrorBlock(
             message = "Couldn't set the alarm: ${result.message}",
             onDone = onDone,
@@ -302,7 +309,7 @@ private fun ErrorBlock(
 }
 
 private fun successMessage(result: HandoffResult.Success): String {
-    val time = String.format(Locale.getDefault(), "%02d:%02d", result.hour, result.minute)
+    val time = com.quickalarm.alarm.SetAlarmHandoff.formatTime(result.hour, result.minute)
     val dayText = when (result.day) {
         ScheduledDay.TODAY -> "today"
         ScheduledDay.TOMORROW -> {

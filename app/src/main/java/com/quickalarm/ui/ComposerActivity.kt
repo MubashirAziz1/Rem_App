@@ -2,7 +2,6 @@ package com.quickalarm.ui
 
 import android.app.KeyguardManager
 import android.content.Context
-import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -50,16 +49,9 @@ class ComposerActivity : ComponentActivity() {
     }
 
     private fun setShowWhenLockedCompat() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
-        } else {
-            @Suppress("DEPRECATION")
-            window.addFlags(
-                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON,
-            )
-        }
+        // minSdk is 33 (>= O_MR1), so the platform APIs are always available.
+        setShowWhenLocked(true)
+        setTurnScreenOn(true)
     }
 
     /**
@@ -69,7 +61,7 @@ class ComposerActivity : ComponentActivity() {
      */
     private fun unlockToType() {
         val km = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager ?: return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && km.isKeyguardLocked) {
+        if (km.isKeyguardLocked) {
             km.requestDismissKeyguard(this, null)
         }
     }

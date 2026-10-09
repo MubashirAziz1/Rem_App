@@ -6,7 +6,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.quickalarm.R
 import com.quickalarm.service.QuickAlarmService
@@ -22,22 +21,21 @@ object Notifications {
     const val ONGOING_NOTIFICATION_ID = 1001
 
     fun ensureChannel(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val manager = context.getSystemService(NotificationManager::class.java)
-            val existing = manager.getNotificationChannel(CHANNEL_ID)
-            if (existing == null) {
-                val channel = NotificationChannel(
-                    CHANNEL_ID,
-                    context.getString(R.string.channel_name),
-                    // Low importance: persistent, silent, no heads-up. Still shows on lock screen.
-                    NotificationManager.IMPORTANCE_LOW,
-                ).apply {
-                    description = context.getString(R.string.channel_desc)
-                    setShowBadge(false)
-                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-                }
-                manager.createNotificationChannel(channel)
+        // minSdk is 33 (>= O), so NotificationChannel is always available.
+        val manager = context.getSystemService(NotificationManager::class.java)
+        val existing = manager.getNotificationChannel(CHANNEL_ID)
+        if (existing == null) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                context.getString(R.string.channel_name),
+                // Low importance: persistent, silent, no heads-up. Still shows on lock screen.
+                NotificationManager.IMPORTANCE_LOW,
+            ).apply {
+                description = context.getString(R.string.channel_desc)
+                setShowBadge(false)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }
+            manager.createNotificationChannel(channel)
         }
     }
 

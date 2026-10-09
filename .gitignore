@@ -9,4 +9,8 @@
 .cxx
 local.properties
 /app/build
+/build-baseline
 /.kotlin
+SPEC.md
+/tasks
+

@@ -26,9 +26,20 @@ class QuickAlarmService : Service() {
                 stopSelf()
                 return START_NOT_STICKY
             }
-            else -> {
+            ACTION_SHOW -> {
                 AppPrefs.setNotificationEnabled(this, true)
                 startAsForeground()
+            }
+            else -> {
+                // Null intent (system restarted us after a kill) or unknown action.
+                // Re-arm only if the user hasn't hidden it; never write preferences here
+                // so a restart is side-effect free.
+                if (AppPrefs.isNotificationEnabled(this)) {
+                    startAsForeground()
+                } else {
+                    stopSelf()
+                    return START_NOT_STICKY
+                }
             }
         }
         // Restart if the system kills us so the notification comes back.
@@ -37,7 +48,9 @@ class QuickAlarmService : Service() {
 
     private fun startAsForeground() {
         val notification = Notifications.buildOngoing(this)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        // FOREGROUND_SERVICE_TYPE_SPECIAL_USE was introduced in API 34 (UpsideDownCake).
+        // On API 33 no type is required, so omit it there to avoid a wrong-type rejection (R5).
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(
                 Notifications.ONGOING_NOTIFICATION_ID,
                 notification,

@@ -10,8 +10,13 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <!-- Re-arm the ongoing notification after reboot. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <!-- Optional: request ignoring battery optimizations on One UI. -->
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!-- Package visibility for the stock Clock hand-off (ACTION_SET_ALARM) on API 30+. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.SET_ALARM" />
+        </intent>
+    </queries>
 
     <application
         android:name=".App"
@@ -22,7 +27,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.QuickAlarm">
 
-        <!-- Launcher: onboarding, Start/Hide controls, Samsung setup checklist. -->
+        <!-- Launcher: first-launch setup flow, then the status screen. -->
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
@@ -60,7 +65,6 @@
             android:enabled="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
