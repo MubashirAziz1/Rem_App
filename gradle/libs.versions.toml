@@ -6,6 +6,10 @@ lifecycle = "2.9.0"
 activityCompose = "1.10.1"
 composeBom = "2026.08.00"
 junit = "4.13.2"
+work = "2.12.0"
+# Test-only. The android.jar's org.json is a stub in JVM unit tests, so the real
+# implementation is needed on the test classpath (not shipped in the APK).
+json = "20260814"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -18,8 +22,9 @@ androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
-androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+json = { group = "org.json", name = "json", version.ref = "json" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

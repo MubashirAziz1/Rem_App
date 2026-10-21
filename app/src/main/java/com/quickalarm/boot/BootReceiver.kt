@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationManagerCompat
 import com.quickalarm.data.AppPrefs
+import com.quickalarm.prayer.PrayerWork
 import com.quickalarm.service.QuickAlarmService
 
 /**
@@ -23,6 +24,9 @@ class BootReceiver : BroadcastReceiver() {
                 ) {
                     QuickAlarmService.start(context)
                 }
+                // WorkManager restores its own work across reboots, but re-asserting the
+                // periodic fetch here is cheap and covers a cleared app-data edge case.
+                PrayerWork.ensureDaily(context)
             }
         }
     }

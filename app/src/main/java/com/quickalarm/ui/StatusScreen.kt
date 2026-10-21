@@ -1,6 +1,12 @@
 package com.quickalarm.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,12 +16,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -23,16 +30,26 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.LifecycleEventObserver
+import com.quickalarm.data.AppPrefs
 import com.quickalarm.service.QuickAlarmService
 import com.quickalarm.setup.NotifState
 import com.quickalarm.setup.NotificationStatus
+import com.quickalarm.ui.theme.Motion
+import com.quickalarm.ui.theme.PrimaryButton
+import com.quickalarm.ui.theme.QuickAlarmColors
+import com.quickalarm.ui.theme.Reveal
+import com.quickalarm.ui.theme.SecondaryButton
+import com.quickalarm.ui.theme.Spacing
+import com.quickalarm.ui.theme.StatusDot
 
 /**
  * The status screen shown on every launch after setup. Reflects only what the app can
@@ -47,10 +64,12 @@ fun StatusScreen(
     onOpenNotificationSettings: () -> Unit,
     onOpenLockScreenSettings: () -> Unit,
     onOpenBatteryOptimizationSettings: () -> Unit,
+    onOpenLocation: () -> Unit = {},
 ) {
     val context = LocalContext.current
     var state by remember { mutableStateOf(NotificationStatus.current(context)) }
     var troubleshootingOpen by remember { mutableStateOf(false) }
+    var lastTimes by remember { mutableStateOf(AppPrefs.getLastPrayerTimes(context)) }
 
     // Re-read on resume so toggling system settings is reflected when the user returns.
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -58,72 +77,77 @@ fun StatusScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 state = NotificationStatus.current(context)
+                lastTimes = AppPrefs.getLastPrayerTimes(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    fun refresh() {
-        state = NotificationStatus.current(context)
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .safeDrawingPadding()
             .verticalScroll(rememberScrollState())
-            .padding(24.dp),
+            .padding(horizontal = Spacing.lg),
     ) {
-        Text("Quick Alarm", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(16.dp))
-
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp)) {
-                Text(
-                    text = statusTitle(state),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(statusDetail(state), style = MaterialTheme.typography.bodyMedium)
-                Spacer(Modifier.height(16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    when (state) {
-                        is NotifState.Active -> OutlinedButton(onClick = {
-                            QuickAlarmService.hide(context)
-                            refresh()
-                        }) { Text("Hide") }
-                        is NotifState.HiddenByUser -> Button(onClick = {
-                            QuickAlarmService.start(context)
-                            refresh()
-                        }) { Text("Show notification") }
-                        is NotifState.Blocked -> Button(onClick = onOpenNotificationSettings) {
-                            Text("Fix in settings")
-                        }
-                    }
-                }
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-        Button(onClick = onTestAlarm, modifier = Modifier.fillMaxWidth()) { Text("Test alarm") }
-
-        Spacer(Modifier.height(24.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { troubleshootingOpen = !troubleshootingOpen }
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
+        Spacer(Modifier.height(Spacing.xl))
+        Reveal(0) {
             Text(
-                "Notification not showing or keeps disappearing?",
-                style = MaterialTheme.typography.titleMedium,
+                text = "Quick Alarm",
+                style = MaterialTheme.typography.titleLarge,
+                color = QuickAlarmColors.TextPrimary,
             )
-            Text(if (troubleshootingOpen) "−" else "+")
         }
-        AnimatedVisibility(visible = troubleshootingOpen) {
-            Column(Modifier.padding(top = 8.dp)) {
+        Spacer(Modifier.height(Spacing.lg))
+
+        Reveal(1) {
+            StatusCard(
+                state = state,
+                onHide = {
+                    QuickAlarmService.hide(context)
+                    // Optimistic update so the UI reflects Hide immediately; the async
+                    // pref write would otherwise leave the screen showing "Active" until
+                    // the next resume. ON_RESUME re-derives from prefs to stay correct.
+                    state = NotifState.HiddenByUser
+                },
+                onShow = {
+                    QuickAlarmService.start(context)
+                    state = NotifState.Active
+                },
+                onFix = onOpenNotificationSettings,
+            )
+        }
+
+        Spacer(Modifier.height(Spacing.md))
+        Reveal(2) {
+            PrimaryButton(
+                text = "Test alarm",
+                onClick = onTestAlarm,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        Spacer(Modifier.height(Spacing.sm))
+        Reveal(3) {
+            WakeUpCard(times = lastTimes, onClick = onOpenLocation)
+        }
+
+        Spacer(Modifier.height(Spacing.xl))
+        Reveal(4) {
+            TroubleshootingHeader(
+                open = troubleshootingOpen,
+                onToggle = { troubleshootingOpen = !troubleshootingOpen },
+            )
+        }
+        AnimatedVisibility(
+            visible = troubleshootingOpen,
+            enter = fadeIn(tween(Motion.DurationMs, easing = Motion.Fluid)) +
+                expandVertically(tween(Motion.DurationMs, easing = Motion.Fluid)),
+            exit = fadeOut(tween(Motion.ExitMs)) +
+                shrinkVertically(tween(Motion.ExitMs)),
+        ) {
+            Column(Modifier.padding(top = Spacing.sm)) {
                 TroubleshootItem(
                     title = "Battery: set Quick Alarm to Unrestricted",
                     desc = "One UI can put sleeping apps' foreground services to sleep. " +
@@ -131,6 +155,7 @@ fun StatusScreen(
                     buttonText = "Battery settings",
                     onClick = onOpenBatteryOptimizationSettings,
                 )
+                Spacer(Modifier.height(Spacing.sm))
                 TroubleshootItem(
                     title = "Lock screen: show content",
                     desc = "If the notification isn't visible on the lock screen, set lock " +
@@ -140,7 +165,166 @@ fun StatusScreen(
                 )
             }
         }
+        Spacer(Modifier.height(Spacing.lg))
     }
+}
+
+@Composable
+private fun StatusCard(
+    state: NotifState,
+    onHide: () -> Unit,
+    onShow: () -> Unit,
+    onFix: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = QuickAlarmColors.Surface,
+    ) {
+        Column(Modifier.padding(Spacing.lg)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                StatusDot(color = statusColor(state))
+                Spacer(Modifier.width(Spacing.sm))
+                Text(
+                    text = statusTitle(state),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = QuickAlarmColors.TextPrimary,
+                )
+            }
+            Spacer(Modifier.height(Spacing.xs))
+            Text(
+                text = statusDetail(state),
+                style = MaterialTheme.typography.bodyMedium,
+                color = QuickAlarmColors.TextSecondary,
+            )
+            Spacer(Modifier.height(Spacing.md))
+            when (state) {
+                is NotifState.Active -> SecondaryButton(text = "Hide notification", onClick = onHide)
+                is NotifState.HiddenByUser -> PrimaryButton(text = "Show notification", onClick = onShow)
+                is NotifState.Blocked -> PrimaryButton(text = "Fix in settings", onClick = onFix)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WakeUpCard(
+    times: com.quickalarm.prayer.PrayerTimes?,
+    onClick: () -> Unit,
+) {
+    val stale = times == null || times.date != java.time.LocalDate.now()
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = QuickAlarmColors.Surface,
+    ) {
+        Column(Modifier.padding(Spacing.lg)) {
+            Text(
+                text = "Gradual wake-up",
+                style = MaterialTheme.typography.titleMedium,
+                color = QuickAlarmColors.TextPrimary,
+            )
+            Spacer(Modifier.height(Spacing.xs))
+            Text(
+                text = if (times == null) {
+                    "Set your city to fetch sunrise and schedule six alarms."
+                } else {
+                    val sunrise = com.quickalarm.alarm.SetAlarmHandoff.formatTime(
+                        times.sunrise.hour,
+                        times.sunrise.minute,
+                    )
+                    "Six alarms from 30 minutes before sunrise ($sunrise)."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = QuickAlarmColors.TextSecondary,
+            )
+            Spacer(Modifier.height(Spacing.xs))
+            Text(
+                text = when {
+                    times == null -> "Tap to choose a location"
+                    stale -> "Last updated ${times.date}. Tap to refresh."
+                    else -> "Updated today. Tap to change location"
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (stale) QuickAlarmColors.StatusHidden else QuickAlarmColors.TextSecondary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun TroubleshootingHeader(
+    open: Boolean,
+    onToggle: () -> Unit,
+) {
+    // The "+" rotates 45 degrees into a close mark when the section expands.
+    val rotation by animateFloatAsState(
+        targetValue = if (open) 45f else 0f,
+        animationSpec = tween(Motion.DurationMs, easing = Motion.Fluid),
+        label = "troubleshootToggle",
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onToggle)
+            .padding(vertical = Spacing.xs),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "Notification not showing or keeps disappearing?",
+            style = MaterialTheme.typography.titleMedium,
+            color = QuickAlarmColors.TextPrimary,
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(Spacing.md))
+        Text(
+            text = "+",
+            style = MaterialTheme.typography.titleLarge,
+            color = QuickAlarmColors.TextSecondary,
+            modifier = Modifier.graphicsLayer { rotationZ = rotation },
+        )
+    }
+}
+
+@Composable
+private fun TroubleshootItem(
+    title: String,
+    desc: String,
+    buttonText: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = QuickAlarmColors.SurfaceRaised,
+    ) {
+        Column(Modifier.padding(Spacing.md)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = QuickAlarmColors.TextPrimary,
+            )
+            Spacer(Modifier.height(Spacing.xs))
+            Text(
+                text = desc,
+                style = MaterialTheme.typography.bodyMedium,
+                color = QuickAlarmColors.TextSecondary,
+            )
+            Spacer(Modifier.height(Spacing.sm))
+            SecondaryButton(text = buttonText, onClick = onClick)
+        }
+    }
+}
+
+private fun statusColor(state: NotifState) = when (state) {
+    is NotifState.Active -> QuickAlarmColors.StatusActive
+    is NotifState.HiddenByUser -> QuickAlarmColors.StatusHidden
+    is NotifState.Blocked -> QuickAlarmColors.StatusBlocked
 }
 
 private fun statusTitle(state: NotifState): String = when (state) {
@@ -153,22 +337,4 @@ private fun statusDetail(state: NotifState): String = when (state) {
     is NotifState.Active -> "The Quick Alarm notification is on your lock screen. Tap it to create a titled alarm."
     is NotifState.HiddenByUser -> "You hid the notification. Tap \"Show notification\" to bring it back."
     is NotifState.Blocked -> "The notification can't show. Open notification settings to allow it."
-}
-
-@Composable
-private fun TroubleshootItem(
-    title: String,
-    desc: String,
-    buttonText: String,
-    onClick: () -> Unit,
-) {
-    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Column(Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(4.dp))
-            Text(desc, style = MaterialTheme.typography.bodyMedium)
-            Spacer(Modifier.height(12.dp))
-            OutlinedButton(onClick = onClick) { Text(buttonText) }
-        }
-    }
 }

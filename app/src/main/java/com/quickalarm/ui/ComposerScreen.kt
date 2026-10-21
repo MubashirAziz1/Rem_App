@@ -12,16 +12,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -45,6 +42,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.quickalarm.alarm.HandoffResult
 import com.quickalarm.alarm.ScheduledDay
+import com.quickalarm.ui.theme.CheckGlyph
+import com.quickalarm.ui.theme.ErrorGlyph
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -234,12 +233,7 @@ private fun DoneContent(
 ) {
     when (result) {
         is HandoffResult.Success -> {
-            Icon(
-                imageVector = Icons.Filled.CheckCircle,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.height(48.dp),
-            )
+            CheckGlyph(modifier = Modifier.size(48.dp))
             Spacer(Modifier.height(12.dp))
             Text(
                 text = "Alarm set",
@@ -284,12 +278,7 @@ private fun ErrorBlock(
     onDone: () -> Unit,
     onRetry: (() -> Unit)?,
 ) {
-    Icon(
-        imageVector = Icons.Filled.ErrorOutline,
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.error,
-        modifier = Modifier.height(48.dp),
-    )
+    ErrorGlyph(modifier = Modifier.size(48.dp))
     Spacer(Modifier.height(12.dp))
     Text(
         text = "Couldn't set alarm",

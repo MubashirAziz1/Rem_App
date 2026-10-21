@@ -7,8 +7,8 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.MaterialTheme
 import com.quickalarm.alarm.SetAlarmHandoff
+import com.quickalarm.ui.theme.QuickAlarmTheme
 
 /**
  * Composer shown over the keyguard. Uses showWhenLocked/turnScreenOn so it renders
@@ -31,7 +31,7 @@ class ComposerActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            MaterialTheme {
+            QuickAlarmTheme {
                 ComposerScreen(
                     onConfirm = { hour, minute, title ->
                         SetAlarmHandoff.setAlarm(

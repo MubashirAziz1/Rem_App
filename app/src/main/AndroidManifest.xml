@@ -10,6 +10,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <!-- Re-arm the ongoing notification after reboot. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Fetch the daily prayer time from the Aladhan API (SPEC-namaz.md).
+         Note: androidx.work also merges in ACCESS_NETWORK_STATE and WAKE_LOCK. -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- Package visibility for the stock Clock hand-off (ACTION_SET_ALARM) on API 30+. -->
     <queries>

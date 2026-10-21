@@ -23,6 +23,12 @@ class QuickAlarmService : Service() {
         when (intent?.action) {
             ACTION_HIDE -> {
                 AppPrefs.setNotificationEnabled(this, false)
+                // Drop the foreground state and remove the notification before stopping, so the
+                // notification is gone and the system does not treat this as an unfulfilled
+                // foreground-service start (which on API 34+ would otherwise restart us and
+                // re-post the notification). STOP_FOREGROUND_REMOVE is a no-op if we are not
+                // currently foreground.
+                stopForeground(Service.STOP_FOREGROUND_REMOVE)
                 stopSelf()
                 return START_NOT_STICKY
             }
@@ -73,12 +79,15 @@ class QuickAlarmService : Service() {
             ContextCompat.startForegroundService(context, intent)
         }
 
-        /** Stops the service and removes the notification. */
+        /** Stops the service and removes the notification. Uses a plain [Context.startService]
+         * (not startForegroundService) so the system does not expect a foreground start that
+         * the HIDE branch would never fulfill -- which on API 34+ causes a restart race that
+         * re-posts the notification. */
         fun hide(context: Context) {
             val intent = Intent(context, QuickAlarmService::class.java).apply {
                 action = ACTION_HIDE
             }
-            ContextCompat.startForegroundService(context, intent)
+            context.startService(intent)
         }
     }
 }

@@ -47,9 +47,13 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.material3)
-    implementation(libs.androidx.material.icons.extended)
+    // Daily prayer-time refresh. Runs the fetch off the main thread; the app's own
+    // foreground service stays idle (SPEC.md D4 is preserved).
+    implementation(libs.androidx.work.runtime.ktx)
 
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)
+    // The android.jar org.json is a stub in unit tests, so provide the real parser.
+    testImplementation(libs.json)
 }

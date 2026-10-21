@@ -49,4 +49,4 @@ object SetupState {
 }
 
 /** Top-level destination shown by [MainActivity]. */
-enum class TopScreen { Setup, Status }
+enum class TopScreen { Setup, Status, Location }
