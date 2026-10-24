@@ -35,7 +35,19 @@ class PrayerFetchWorker(
             when (val result = PrayerTimesClient.fetch(location, today)) {
                 is PrayerParseResult.Success -> {
                     AppPrefs.setLastPrayerTimes(applicationContext, result.times)
-                    PrayerScheduler.schedule(applicationContext, result.times)
+                    // Suspends between hand-offs (see PrayerScheduler) so the Clock can
+                    // process each one instead of dropping all but the first.
+                    val summary = PrayerScheduler.schedule(applicationContext, result.times)
+                    // Record what actually happened so the status screen reports the real
+                    // count instead of assuming the alarms exist.
+                    AppPrefs.setLastSchedule(
+                        applicationContext,
+                        AppPrefs.LastSchedule(
+                            succeeded = summary.succeeded,
+                            total = summary.total,
+                            tomorrow = summary.day == com.quickalarm.alarm.ScheduledDay.TOMORROW,
+                        ),
+                    )
                     Result.success()
                 }
 

@@ -63,7 +63,10 @@ class PrayerScheduleTest {
     }
 
     @Test
-    fun `returns an empty list when every offset has passed`() {
+    fun `schedules all six for tomorrow when the whole window has passed`() {
+        // 09:00 is past sunrise, so every offset is in the past. Rather than silently setting
+        // nothing, all six are shifted a day; the Clock's next-occurrence rule lands them
+        // tomorrow at the same wall-clock times. Karachi has no DST, so they read unchanged.
         val times = PrayerSchedule.wakeUpTimes(
             date = date,
             sunrise = LocalTime.of(5, 54),
@@ -72,7 +75,17 @@ class PrayerScheduleTest {
             now = nowAt(9, 0),
         )
 
-        assertEquals(emptyList<LocalTime>(), times)
+        assertEquals(
+            listOf(
+                LocalTime.of(5, 24),
+                LocalTime.of(5, 29),
+                LocalTime.of(5, 34),
+                LocalTime.of(5, 39),
+                LocalTime.of(5, 44),
+                LocalTime.of(5, 49),
+            ),
+            times,
+        )
     }
 
     @Test

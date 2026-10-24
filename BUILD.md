@@ -293,6 +293,11 @@ fallback is one alarm at the anchor plus five notifications. Please report the e
 - **The six alarms ring at the Clock app's own volume.** The app cannot make them ramp
   gently — "wake up gradually" here means six chances at 5-minute intervals, not a soft
   volume build-up. This is inherent to handing off to the stock Clock.
+- **The six hand-offs are spaced 2 seconds apart** (`PrayerScheduler.DISPATCH_GAP_MS`).
+  `ACTION_SET_ALARM` is an *Activity* action, so each hand-off starts the Clock. Sending all
+  six in one burst made the Clock accept the first and silently drop the rest (a known
+  behavior of several stock Clock apps); the gap fixes it. Do not collapse this back into a
+  tight loop — the spacing is what makes all six land.
 - **`ACTION_SET_ALARM` carries no date.** It only takes hour and minute, and the Clock always
   schedules the *next* occurrence. Any offset already passed today is therefore skipped
   rather than dispatched (it would otherwise silently land tomorrow and ring a day late).

@@ -70,6 +70,7 @@ fun StatusScreen(
     var state by remember { mutableStateOf(NotificationStatus.current(context)) }
     var troubleshootingOpen by remember { mutableStateOf(false) }
     var lastTimes by remember { mutableStateOf(AppPrefs.getLastPrayerTimes(context)) }
+    var lastSchedule by remember { mutableStateOf(AppPrefs.getLastSchedule(context)) }
 
     // Re-read on resume so toggling system settings is reflected when the user returns.
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -78,6 +79,7 @@ fun StatusScreen(
             if (event == Lifecycle.Event.ON_RESUME) {
                 state = NotificationStatus.current(context)
                 lastTimes = AppPrefs.getLastPrayerTimes(context)
+                lastSchedule = AppPrefs.getLastSchedule(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -130,7 +132,7 @@ fun StatusScreen(
 
         Spacer(Modifier.height(Spacing.sm))
         Reveal(3) {
-            WakeUpCard(times = lastTimes, onClick = onOpenLocation)
+            WakeUpCard(times = lastTimes, schedule = lastSchedule, onClick = onOpenLocation)
         }
 
         Spacer(Modifier.height(Spacing.xl))
@@ -210,6 +212,7 @@ private fun StatusCard(
 @Composable
 private fun WakeUpCard(
     times: com.quickalarm.prayer.PrayerTimes?,
+    schedule: AppPrefs.LastSchedule?,
     onClick: () -> Unit,
 ) {
     val stale = times == null || times.date != java.time.LocalDate.now()
@@ -229,15 +232,9 @@ private fun WakeUpCard(
             )
             Spacer(Modifier.height(Spacing.xs))
             Text(
-                text = if (times == null) {
-                    "Set your city to fetch sunrise and schedule six alarms."
-                } else {
-                    val sunrise = com.quickalarm.alarm.SetAlarmHandoff.formatTime(
-                        times.sunrise.hour,
-                        times.sunrise.minute,
-                    )
-                    "Six alarms from 30 minutes before sunrise ($sunrise)."
-                },
+                // Report what the Clock was actually given. Never claim six alarms just
+                // because a time is stored -- that is what made the old copy misleading.
+                text = wakeUpSummary(times, schedule),
                 style = MaterialTheme.typography.bodyMedium,
                 color = QuickAlarmColors.TextSecondary,
             )
@@ -318,6 +315,25 @@ private fun TroubleshootItem(
             Spacer(Modifier.height(Spacing.sm))
             SecondaryButton(text = buttonText, onClick = onClick)
         }
+    }
+}
+
+/**
+ * The truthful one-line status for the wake-up card, built only from facts we recorded:
+ * the fetched time and the actual dispatch result. Shows "not set yet" until a fetch has
+ * both succeeded *and* reported how many alarms reached the Clock.
+ */
+private fun wakeUpSummary(
+    times: com.quickalarm.prayer.PrayerTimes?,
+    schedule: AppPrefs.LastSchedule?,
+): String = when {
+    times == null -> "Set your city to fetch sunrise and schedule the alarms."
+    schedule == null -> "Fetched, but no alarms set yet."
+    schedule.succeeded == 0 ->
+        "No alarms were set. Open the Clock app, then tap to try again."
+    else -> {
+        val when_ = if (schedule.tomorrow) "tomorrow" else "today"
+        "${schedule.succeeded} alarm${if (schedule.succeeded == 1) "" else "s"} set for $when_."
     }
 }
 

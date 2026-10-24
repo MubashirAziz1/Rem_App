@@ -23,6 +23,9 @@ object AppPrefs {
     private const val KEY_LAST_DATE = "prayer_last_date"
     private const val KEY_LAST_SUNRISE = "prayer_last_sunrise"
     private const val KEY_LAST_TIMEZONE = "prayer_last_timezone"
+    private const val KEY_LAST_SCHEDULED = "prayer_last_scheduled"
+    private const val KEY_LAST_SCHEDULED_TOTAL = "prayer_last_scheduled_total"
+    private const val KEY_LAST_SCHEDULED_TOMORROW = "prayer_last_scheduled_tomorrow"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -115,6 +118,34 @@ object AppPrefs {
             putString(KEY_LAST_DATE, times.date.toString())
             putString(KEY_LAST_SUNRISE, times.sunrise.toString())
             putString(KEY_LAST_TIMEZONE, times.timezone)
+        }
+    }
+
+    // --- Last schedule result (so the UI can report the truth, not an assumption) ---
+
+    /**
+     * How many alarms were actually handed to the Clock, and which day they land on.
+     * Null until the first successful dispatch. Without this the status screen could only
+     * *assume* the alarms exist, which is how it claimed six while setting none.
+     */
+    data class LastSchedule(val succeeded: Int, val total: Int, val tomorrow: Boolean)
+
+    fun getLastSchedule(context: Context): LastSchedule? {
+        val prefs = prefs(context)
+        val succeeded = prefs.getInt(KEY_LAST_SCHEDULED, -1)
+        if (succeeded < 0) return null
+        return LastSchedule(
+            succeeded = succeeded,
+            total = prefs.getInt(KEY_LAST_SCHEDULED_TOTAL, succeeded),
+            tomorrow = prefs.getBoolean(KEY_LAST_SCHEDULED_TOMORROW, false),
+        )
+    }
+
+    fun setLastSchedule(context: Context, schedule: LastSchedule) {
+        prefs(context).edit {
+            putInt(KEY_LAST_SCHEDULED, schedule.succeeded)
+            putInt(KEY_LAST_SCHEDULED_TOTAL, schedule.total)
+            putBoolean(KEY_LAST_SCHEDULED_TOMORROW, schedule.tomorrow)
         }
     }
 }
